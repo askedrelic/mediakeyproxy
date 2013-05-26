@@ -223,7 +223,7 @@ static CGEventRef tapEventCallback2(CGEventTapProxy proxy, CGEventType type, CGE
     
 	int keyFlags = ([nsEvent data1] & 0x0000FFFF);
 	BOOL keyIsPressed = (((keyFlags & 0xFF00) >> 8)) == 0xA;
-	int keyRepeat = (keyFlags & 0x1);
+	//int keyRepeat = (keyFlags & 0x1);
     
     //put this into list of with priority?
     if ([outputPianobar length] > 0) {
@@ -298,11 +298,20 @@ NSString *runCommand(NSString *commandToRun)
     [task setLaunchPath: @"/bin/bash"];
     
     // get current env dictionary
-    NSDictionary *environmentDict = [[NSProcessInfo processInfo] environment];
+    NSDictionary *environmentDictStatic = [[NSProcessInfo processInfo] environment];
+    NSMutableDictionary *environmentDict = [environmentDictStatic mutableCopy];
+    
+    //NSLog(@"%@", environmentDict);
     
     // update PATH to include usr/local paths
     // TODO: should probably extend PATH, not overwrite PATH
     [environmentDict setObject:@"/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin" forKey:@"PATH"];
+    
+    // unset these env vars to hide some 10.8 bug
+    // http://stackoverflow.com/questions/12064725/dyld-dyld-environment-variables-being-ignored-because-main-executable-usr-bi
+    [environmentDict removeObjectForKey:@"DYLD_LIBRARY_PATH"];
+    [environmentDict removeObjectForKey:@"DYLD_FRAMEWORK_PATH"];
+    
 
     // write new env for this task
     [task setEnvironment: environmentDict];
