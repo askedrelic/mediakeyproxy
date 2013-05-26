@@ -211,33 +211,29 @@ static CGEventRef tapEventCallback2(CGEventTapProxy proxy, CGEventType type, CGE
     if (type != NX_SYSDEFINED || [nsEvent subtype] != SPSystemDefinedEventMediaKeys)
 		return event;
 
-    NSLog(@"type %d", type == NX_KEYUP);
+//    NSLog(@"type %d", type == NX_KEYUP);
 	int keyCode = (([nsEvent data1] & 0xFFFF0000) >> 16);
     if (keyCode != NX_KEYTYPE_PLAY && keyCode != NX_KEYTYPE_FAST && keyCode != NX_KEYTYPE_REWIND && keyCode != NX_KEYTYPE_PREVIOUS && keyCode != NX_KEYTYPE_NEXT)
 		return event;
     
-    
-    //figure out list of support program, run command to figure out if any are running
-    NSString *outputPianobar = runCommand(@"/bin/ps -A -o pid,command | grep p[i]anobar");
-    NSString *outputCmus = runCommand(@"/bin/ps -A -o pid,command | grep c[m]us");
-    NSString *outputSpotify = runCommand(@"/bin/ps -A -o pid,command | grep S[p]otify.app");
-    NSString *outputItunes = runCommand(@"/bin/ps -A -o pid,command | grep \"i[T]unes \"");
-    
 	int keyFlags = ([nsEvent data1] & 0x0000FFFF);
 	BOOL keyIsPressed = (((keyFlags & 0xFF00) >> 8)) == 0xA;
-	//int keyRepeat = (keyFlags & 0x1);
+//	int keyRepeat = (keyFlags & 0x1);
     
-    //TODO: put this into list of with priority sorting...
-    if ([outputPianobar length] > 0) {
-        
-        if (keyIsPressed && keyCode == NX_KEYTYPE_PLAY) {
-            NSLog(@"playing");
-            runCommand(@"echo -n 'p' > ~/.config/pianobar/ctl");
-        }
-        
-        return NULL;
-    } else if ([outputCmus length] > 0) {
-        if (keyIsPressed && keyCode == NX_KEYTYPE_PLAY) {
+    if (keyIsPressed && keyCode == NX_KEYTYPE_PLAY) {
+        //figure out list of support program, run command to figure out if any are running
+        NSString *outputPianobar = runCommand(@"/bin/ps -A -o pid,command | grep p[i]anobar");
+        NSString *outputCmus = runCommand(@"/bin/ps -A -o pid,command | grep c[m]us");
+        NSString *outputSpotify = runCommand(@"/bin/ps -A -o pid,command | grep S[p]otify.app");
+        NSString *outputItunes = runCommand(@"/bin/ps -A -o pid,command | grep \"i[T]unes \"");
+
+    
+        //TODO: put this into list of with priority sorting...
+        if ([outputPianobar length] > 0) {
+                NSLog(@"playing");
+                runCommand(@"echo -n 'p' > ~/.config/pianobar/ctl");
+            return NULL;
+        } else if ([outputCmus length] > 0) {
             // figure out if cmus is running
             NSString *outputCmusPlaying = runCommand(@"cmus-remote -Q | grep playing");
             if ([outputCmusPlaying length] > 0) {
@@ -247,26 +243,24 @@ static CGEventRef tapEventCallback2(CGEventTapProxy proxy, CGEventType type, CGE
                 NSLog(@"cmus paused");
                 runCommand(@"cmus-remote -p");
             }
+            return NULL;
+        } else if ([outputSpotify length] > 0) {
+                //TODO: restart, to re-steal control from spotify?
+                
+                // figure out if spotify is playing something
+                NSLog(@"spotify play pause");
+                runCommand(@"osascript -e \"tell application \\\"Spotify\\\" to playpause\"");
+            return NULL;
+        } else if ([outputItunes length] == 0) {
+            // itunes not running and nothing else captured...
+            // there capture this event, so iTunes doesn't open :<
+            NSLog(@"capture iTunes command");
+            return NULL;
         }
-    } else if ([outputSpotify length] > 0) {
-        if (keyIsPressed && keyCode == NX_KEYTYPE_PLAY) {
-            //TODO: restart, to re-steal control from spotify?
-            
-            // figure out if spotify is playing something
-            NSLog(@"spotify play pause");
-            runCommand(@"osascript -e \"tell application \\\"Spotify\\\" to playpause\"");
-        }
-    } else if ([outputItunes length] == 0) {
-        // Nothing else is running and iTunes is not running,
-        // there capture this event, so iTunes doesn't open :<
-        NSLog(@"capture iTunes command");
-        return NULL;
-    } else {
-        
-        NSLog(@"regular event");
-        return event;
     }
     
+//    NSLog(@"regular event");
+    return event;
 
 //	if (![self shouldInterceptMediaKeyEvents])
 //		return event;
@@ -274,7 +268,7 @@ static CGEventRef tapEventCallback2(CGEventTapProxy proxy, CGEventType type, CGE
 //	[nsEvent retain]; // matched in handleAndReleaseMediaKeyEvent:
 //	[self performSelectorOnMainThread:@selector(handleAndReleaseMediaKeyEvent:) withObject:nsEvent waitUntilDone:NO];
 	
-	return NULL;
+//	return NULL;
 }
 
 static CGEventRef tapEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon)
@@ -327,7 +321,6 @@ NSString *runCommand(NSString *commandToRun)
     [environmentDict removeObjectForKey:@"DYLD_LIBRARY_PATH"];
     [environmentDict removeObjectForKey:@"DYLD_FRAMEWORK_PATH"];
     
-
     // write new env for this task
     [task setEnvironment: environmentDict];
     
