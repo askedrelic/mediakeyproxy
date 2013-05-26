@@ -221,6 +221,7 @@ static CGEventRef tapEventCallback2(CGEventTapProxy proxy, CGEventType type, CGE
     NSString *outputPianobar = runCommand(@"/bin/ps -A -o pid,command | grep p[i]anobar");
     NSString *outputCmus = runCommand(@"/bin/ps -A -o pid,command | grep c[m]us");
     NSString *outputSpotify = runCommand(@"/bin/ps -A -o pid,command | grep S[p]otify.app");
+    NSString *outputItunes = runCommand(@"/bin/ps -A -o pid,command | grep \"i[T]unes \"");
     
 	int keyFlags = ([nsEvent data1] & 0x0000FFFF);
 	BOOL keyIsPressed = (((keyFlags & 0xFF00) >> 8)) == 0xA;
@@ -249,11 +250,19 @@ static CGEventRef tapEventCallback2(CGEventTapProxy proxy, CGEventType type, CGE
         }
     } else if ([outputSpotify length] > 0) {
         if (keyIsPressed && keyCode == NX_KEYTYPE_PLAY) {
+            //TODO: restart, to re-steal control from spotify?
+            
             // figure out if spotify is playing something
             NSLog(@"spotify play pause");
             runCommand(@"osascript -e \"tell application \\\"Spotify\\\" to playpause\"");
         }
+    } else if ([outputItunes length] == 0) {
+        // Nothing else is running and iTunes is not running,
+        // there capture this event, so iTunes doesn't open :<
+        NSLog(@"capture iTunes command");
+        return NULL;
     } else {
+        
         NSLog(@"regular event");
         return event;
     }
