@@ -220,12 +220,13 @@ static CGEventRef tapEventCallback2(CGEventTapProxy proxy, CGEventType type, CGE
     //figure out list of support program, run command to figure out if any are running
     NSString *outputPianobar = runCommand(@"/bin/ps -A -o pid,command | grep p[i]anobar");
     NSString *outputCmus = runCommand(@"/bin/ps -A -o pid,command | grep c[m]us");
+    NSString *outputSpotify = runCommand(@"/bin/ps -A -o pid,command | grep S[p]otify.app");
     
 	int keyFlags = ([nsEvent data1] & 0x0000FFFF);
 	BOOL keyIsPressed = (((keyFlags & 0xFF00) >> 8)) == 0xA;
 	//int keyRepeat = (keyFlags & 0x1);
     
-    //put this into list of with priority?
+    //TODO: put this into list of with priority sorting...
     if ([outputPianobar length] > 0) {
         
         if (keyIsPressed && keyCode == NX_KEYTYPE_PLAY) {
@@ -246,7 +247,12 @@ static CGEventRef tapEventCallback2(CGEventTapProxy proxy, CGEventType type, CGE
                 runCommand(@"cmus-remote -p");
             }
         }
-        
+    } else if ([outputSpotify length] > 0) {
+        if (keyIsPressed && keyCode == NX_KEYTYPE_PLAY) {
+            // figure out if spotify is playing something
+            NSLog(@"spotify play pause");
+            runCommand(@"osascript -e \"tell application \\\"Spotify\\\" to playpause\"");
+        }
     } else {
         NSLog(@"regular event");
         return event;
